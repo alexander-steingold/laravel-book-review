@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Book;
 use Illuminate\Http\Request;
 
 class BookController extends Controller
@@ -9,9 +10,32 @@ class BookController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $title = $request->input('title');
+        $filter = $request->input('filter', '');
+
+        $filters = [
+            '' => 'Latest',
+            'popular_last_month' => 'Popular Last Month',
+            'popular_last_6months' => 'Popular Last 6 Months',
+            'highest_rated_last_month' => 'Highest Rated Last Month',
+            'highest_rated_last_6months' => 'Highest Rated Last 6 Months',
+        ];
+
+        $books = Book::when(
+            $title,
+            fn($query, $title) => $query->title($title) //scopeTitle filter from Book model
+        );
+        $books = match ($filter) {
+            'popular_last_month' => $books->popularLastMonth(),
+            'popular_last_6months' => $books->popularLast6Months(),
+            'highest_rated_last_month' => $books->highestRatedLastMonth(),
+            'highest_rated_last_6months' => $books->highestRatedLast6Months(),
+            default => $books->latest()
+        };
+        $books = $books->get();
+        return view('books.index', ['books' => $books, 'filters' => $filters]);
     }
 
     /**
@@ -33,9 +57,9 @@ class BookController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Book $book)
     {
-        //
+        return view('books.show', ['book' => $book]);
     }
 
     /**
